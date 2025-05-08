@@ -20,16 +20,13 @@ SETUP_COMPLETE = False
 
 # --- Cấu hình Tooltip ---
 current_tooltip_instance = None # Chỉ một tooltip được hiển thị tại một thời điểm
-# MAX_CONCURRENT_TOOLTIPS không còn cần thiết
-TOOLTIP_DEFAULT_DURATION = 3500 # Vẫn hữu ích cho thông báo thoát cuối cùng
+TOOLTIP_DEFAULT_DURATION = 3500
 TOOLTIP_ERROR_DURATION = 5000
 TOOLTIP_Y_OFFSET = 20
 TOOLTIP_X_OFFSET_FROM_RIGHT = 20
-# TOOLTIP_Y_SPACING không còn cần thiết
 
-# --- Lớp Tooltip tùy chỉnh (Sửa đổi) ---
+# --- Lớp Tooltip tùy chỉnh ---
 class CustomToolTip(tk.Toplevel):
-    # Bỏ 'duration' khỏi constructor vì nó sẽ không tự hủy nữa
     def __init__(self, master, text, position_y, msg_type="info", **kwargs):
         super().__init__(master, **kwargs)
         self.overrideredirect(True)
@@ -81,24 +78,21 @@ class CustomToolTip(tk.Toplevel):
         screen_width = self.winfo_screenwidth()
         x_pos = screen_width - width - TOOLTIP_X_OFFSET_FROM_RIGHT
         self.geometry(f"+{int(x_pos)}+{int(position_y)}")
-        # Không còn self._job_id hay self.after(duration, ...)
 
-    def close_tooltip(self): # Đổi tên từ force_destroy hoặc destroy_tooltip
+    def close_tooltip(self):
         try:
             if self.winfo_exists():
                 self.destroy()
         except tk.TclError:
             pass
-        # Không cần quản lý active_tooltips hay gọi _reposition_remaining_tooltips
 
-# --- Hàm _reposition_remaining_tooltips (ĐÃ BỊ XÓA) ---
 
-# --- Hàm _configure_tk_root (Giữ nguyên) ---
+# --- Hàm _configure_tk_root ---
 def _configure_tk_root(root_window):
     global _tk_root_ref
     _tk_root_ref = root_window
 
-# --- Hàm _show_all_queued_messages_now (Sửa đổi) ---
+# --- Hàm _show_all_queued_messages_now ---
 def _show_all_queued_messages_now():
     global _tk_root_ref, current_tooltip_instance
     if not _tk_root_ref or not _tk_root_ref.winfo_exists() or not threading.current_thread() is threading.main_thread():
@@ -142,7 +136,7 @@ def _show_all_queued_messages_now():
         except tk.TclError as e_update:
             print(f"Lỗi khi cập nhật Tkinter root: {e_update}")
 
-# --- Hàm show_message (Giữ nguyên) ---
+# --- Hàm show_message ---
 def show_message(message_text, title="Thông báo", type="info"):
     print(f"[{title.upper() if title else 'MESSAGE'}] ({type}) {message_text}")
     message_queue.put((title, message_text, type))
@@ -150,11 +144,6 @@ def show_message(message_text, title="Thông báo", type="info"):
         if _tk_root_ref.winfo_exists():
              _tk_root_ref.after(0, _show_all_queued_messages_now)
 
-# --- Các hàm logic còn lại (on_click_for_selection, get_single_position, select_all_positions, click_automation_loop, on_key_press) ---
-# --- giữ nguyên vì chúng không trực tiếp quản lý cách tooltip được hiển thị hoặc hủy ---
-# --- chúng chỉ gọi show_message. ---
-
-# (Giữ nguyên các hàm on_click_for_selection, get_single_position, select_all_positions, click_automation_loop, on_key_press)
 def on_click_for_selection(x, y, button, pressed):
     global current_selection_key, selecting_position_active, temp_mouse_listener
     if selecting_position_active and pressed and button == mouse.Button.left:
@@ -390,7 +379,6 @@ def main():
                 _tk_root_ref.update() # Xử lý việc hủy tooltip
         
         # Hiển thị thông báo cuối cùng. Nó sẽ là tooltip duy nhất.
-        # THAY ĐỔI: Đặt thời gian chờ mong muốn là 1 giây (1000ms)
         final_message_duration = 1000 
         if _tk_root_ref and _tk_root_ref.winfo_exists():
             # Đảm bảo show_message và xử lý queue chạy trên luồng chính
