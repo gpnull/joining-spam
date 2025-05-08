@@ -2,7 +2,7 @@
 
 ## tải: 
 - link: https://github.com/gpnull/joining-spam/releases
-- launcher phải chạy ở chế độ cửa sổ mới chạy được tool.
+- launcher phải chạy ở chế độ cửa sổ mới chạy được tool, scale của màn hình phải là 100%
 - lưu ý: tool đang chỉ áp dụng chính xác nhất cho server chanh city.
 
 ## chỉnh chế độ cửa sổ:
