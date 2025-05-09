@@ -1,6 +1,7 @@
 import time
 import threading
 import platform
+import ctypes
 import tkinter as tk
 from pynput import mouse, keyboard
 import queue
@@ -281,6 +282,28 @@ def on_key_press(key):
 def main():
     global SETUP_COMPLETE, _tk_root_ref, app_exit_event, positions, current_tooltip_instance # Thêm current_tooltip_instance
 
+    # <<< XỬ LÝ DPI SCALING TRÊN WINDOWS >>>
+    if platform.system() == "Windows":
+        try:
+            # Cố gắng đặt DPI Awareness cho mỗi Monitor V2 (Windows 10 1703+)
+            # Giá trị -4 tương ứng với DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
+            ctypes.windll.shcore.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+            print("INFO: Windows DPI Awareness set to Per Monitor Aware V2.")
+        except (AttributeError, OSError): # AttributeError nếu shcore hoặc hàm không tồn tại, OSError nếu có lỗi gọi
+            try:
+                # Cố gắng đặt DPI Awareness cho mỗi Monitor (Windows 8.1+)
+                # Giá trị 2 tương ứng với PROCESS_PER_MONITOR_DPI_AWARE
+                ctypes.windll.shcore.SetProcessDpiAwareness(2)
+                print("INFO: Windows DPI Awareness set to Per Monitor Aware.")
+            except (AttributeError, OSError):
+                try:
+                    # Cố gắng đặt DPI Awareness cho toàn hệ thống (Windows Vista+)
+                    ctypes.windll.user32.SetProcessDPIAware()
+                    print("INFO: Windows DPI Awareness set to System Aware.")
+                except (AttributeError, OSError):
+                    print("WARNING: Could not set DPI awareness. Mouse positions might be incorrect on scaled displays.")
+    # <<< KẾT THÚC XỬ LÝ DPI SCALING TRÊN WINDOWS >>>
+    
     keyboard_l = None 
     try:
         keyboard_l = keyboard.Listener(on_press=on_key_press, daemon=True)

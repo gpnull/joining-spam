@@ -6,7 +6,7 @@ python -m venv venv
 venv\Scripts\activate
 pip install pynput
 python main.py
-# deactivate
+# deactivate # to stop venv
 ```
 
 ## darwin:
