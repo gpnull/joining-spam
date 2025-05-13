@@ -9,8 +9,8 @@ import queue
 # --- Biến toàn cục ---
 # MODIFIED: positions are now hardcoded
 positions = {
-    'Chanh City': (150, 460),
-    'Vào ngay!': (150, 550),
+    'Chanh City': (150, 550),
+    'Vào ngay!': (150, 460),
     'Đóng': (520, 800)
 }
 running = False
