@@ -7,7 +7,7 @@ from pynput import mouse, keyboard
 import queue
 
 # --- Biến toàn cục ---
-positions = {'Chanh City': None, 'Vào ngay!': None, 'ĐÓNG': None}
+positions = {'Chanh City': None, 'Vào ngay!': None, 'Đóng': None} 
 running = False
 app_exit_event = threading.Event()
 mouse_controller = mouse.Controller()
@@ -20,7 +20,7 @@ _tk_root_ref = None
 SETUP_COMPLETE = False
 
 # --- Cấu hình Tooltip ---
-current_tooltip_instance = None # Chỉ một tooltip được hiển thị tại một thời điểm
+current_tooltip_instance = None 
 TOOLTIP_DEFAULT_DURATION = 3500
 TOOLTIP_ERROR_DURATION = 5000
 TOOLTIP_Y_OFFSET = 20
@@ -87,13 +87,10 @@ class CustomToolTip(tk.Toplevel):
         except tk.TclError:
             pass
 
-
-# --- Hàm _configure_tk_root ---
 def _configure_tk_root(root_window):
     global _tk_root_ref
     _tk_root_ref = root_window
 
-# --- Hàm _show_all_queued_messages_now ---
 def _show_all_queued_messages_now():
     global _tk_root_ref, current_tooltip_instance
     if not _tk_root_ref or not _tk_root_ref.winfo_exists() or not threading.current_thread() is threading.main_thread():
@@ -102,31 +99,24 @@ def _show_all_queued_messages_now():
     last_message_data = None
     processed_any_item_from_queue = False
     try:
-        # Lấy thông báo mới nhất từ queue (nếu có nhiều)
         while not message_queue.empty():
             last_message_data = message_queue.get_nowait()
             processed_any_item_from_queue = True
 
         if last_message_data:
             title, msg_text, msg_type = last_message_data
-
-            # Nếu có tooltip cũ đang hiển thị, hủy nó đi
             if current_tooltip_instance and current_tooltip_instance.winfo_exists():
                 current_tooltip_instance.close_tooltip()
                 current_tooltip_instance = None
-
-            # Tạo và hiển thị tooltip mới
+            
             full_message = f"{title.upper()}:\n{msg_text}" if title and title.lower() not in ["thông báo", "info", "message"] else msg_text
             if title and title.lower() in ["thông báo", "info", "message"] and not msg_text.startswith(title.upper()):
                 full_message = msg_text
             
-            # Tooltip mới luôn ở vị trí Y cố định trên cùng
             new_tooltip = CustomToolTip(_tk_root_ref, full_message,
                                         position_y=TOOLTIP_Y_OFFSET, msg_type=msg_type)
             current_tooltip_instance = new_tooltip
-            # Không cần gọi _reposition_remaining_tooltips
-
-    except queue.Empty: # Điều này không nên xảy ra nếu vòng lặp while ở trên chạy đúng
+    except queue.Empty: 
         pass
     except Exception as e_queue:
         print(f"Lỗi không mong muốn khi xử lý message queue cho tooltip: {e_queue}")
@@ -137,9 +127,11 @@ def _show_all_queued_messages_now():
         except tk.TclError as e_update:
             print(f"Lỗi khi cập nhật Tkinter root: {e_update}")
 
-# --- Hàm show_message ---
-def show_message(message_text, title="Thông báo", type="info"):
-    print(f"[{title.upper() if title else 'MESSAGE'}] ({type}) {message_text}")
+# MODIFIED show_message function
+def show_message(message_text, title="Thông báo", type="info", log_to_console=True):
+    if log_to_console:
+        print(f"[{title.upper() if title else 'MESSAGE'}] ({type}) {message_text}")
+    
     message_queue.put((title, message_text, type))
     if _tk_root_ref and threading.current_thread() is threading.main_thread():
         if _tk_root_ref.winfo_exists():
@@ -150,34 +142,26 @@ def on_click_for_selection(x, y, button, pressed):
     if selecting_position_active and pressed and button == mouse.Button.left:
         positions[current_selection_key] = (int(x), int(y))
         print(f"INFO: Đã ghi nhớ vị trí '{current_selection_key}': ({int(x)}, {int(y)}) (không hiển thị pop-up)")
-        # selecting_position_active = False # Sẽ được set bởi get_single_position
-        if temp_mouse_listener: # Dừng listener chuột hiện tại
-            # temp_mouse_listener.stop() # Cách này có thể gây lỗi nếu listener đã tự dừng
-            return False # Trả về False để dừng listener từ callback
+        if temp_mouse_listener: 
+            return False 
     return True
 
 def get_single_position(key_name):
     global current_selection_key, selecting_position_active, temp_mouse_listener, app_exit_event
     current_selection_key = key_name
-    selecting_position_active = True # Báo hiệu đang trong quá trình chọn vị trí
+    selecting_position_active = True 
 
     show_message(f"CLICK CHUỘT TRÁI để chọn vị trí '{key_name}'.", title="Yêu Cầu Chọn Vị Trí", type="info")
     
     click_captured_event = threading.Event()
 
-    # local_on_click phải được định nghĩa lại hoặc làm cho nó nhận biết được context hiện tại
-    # để tránh xung đột nếu get_single_position được gọi nhiều lần.
-    # Vì nó là nested function, nó sẽ tạo ra một closure mới mỗi lần get_single_position được gọi.
-
     def local_on_click(x,y,button,pressed):
-        # Callback này sẽ chỉ hoạt động cho key_name hiện tại của get_single_position
         if selecting_position_active and current_selection_key == key_name and pressed and button == mouse.Button.left:
-            positions[key_name] = (int(x), int(y)) # Ghi nhận vị trí cho key_name hiện tại
+            positions[key_name] = (int(x), int(y)) 
             print(f"INFO (local_on_click): Đã ghi nhớ vị trí '{key_name}': ({int(x)}, {int(y)})")
             click_captured_event.set()
-            return False # Dừng listener này
+            return False 
         return True
-
 
     with mouse.Listener(on_click=local_on_click) as m_listener:
         temp_mouse_listener = m_listener
@@ -187,29 +171,27 @@ def get_single_position(key_name):
                 _tk_root_ref.update_idletasks()
                 _tk_root_ref.update()
             
-            # Kiểm tra xem listener có còn chạy không
             if not m_listener.is_alive() and not click_captured_event.is_set():
                 print(f"CẢNH BÁO: Mouse listener cho '{key_name}' đã dừng ngoài ý muốn trước khi click được ghi nhận.")
-                break # Thoát vòng lặp chờ nếu listener chết
-            time.sleep(0.02) # sleep để giảm tải CPU và cho Tkinter xử lý
+                break 
+            time.sleep(0.02) 
 
     print(f"INFO: Mouse listener cho '{key_name}' đã kết thúc. Click captured: {click_captured_event.is_set()}")
-    selecting_position_active = False # Đặt lại trạng thái sau khi hoàn tất
-    temp_mouse_listener = None # Xóa tham chiếu
+    selecting_position_active = False 
+    temp_mouse_listener = None 
 
     if not click_captured_event.is_set() and not app_exit_event.is_set():
-        if positions[key_name] is None: # Nếu không có click và vị trí vẫn là None
+        if positions[key_name] is None: 
             show_message(f"Chưa chọn vị trí cho '{key_name}'.", title="Cảnh Báo", type="warning")
             return False
-    elif positions[key_name] is None and not app_exit_event.is_set(): # Nếu click_captured_event được set nhưng vị trí lại là None (hiếm)
+    elif positions[key_name] is None and not app_exit_event.is_set(): 
         show_message(f"Lỗi không ghi được vị trí cho '{key_name}' dù đã click.", title="Lỗi", type="error")
         return False
         
     return positions[key_name] is not None or app_exit_event.is_set()
 
-
 def select_all_positions():
-    show_message("Xác định 3 vị trí: Chanh City, Vào ngay!, và ĐÓNG.", title="Hướng Dẫn Thiết Lập", type="info")
+    show_message("Xác định 3 vị trí: Chanh City, Vào ngay!, và Đóng.", title="Hướng Dẫn Thiết Lập", type="info")
 
     if not get_single_position('Chanh City'): return False
     if app_exit_event.is_set(): return False
@@ -219,63 +201,94 @@ def select_all_positions():
     if app_exit_event.is_set(): return False
     if positions['Vào ngay!']: show_message(f"Đã chọn 'Vào ngay!': {positions['Vào ngay!']}", title="Thông Tin", type="success")
 
-    if not get_single_position('ĐÓNG'): return False
+    if not get_single_position('Đóng'): return False
     if app_exit_event.is_set(): return False
-    if positions['ĐÓNG']: show_message(f"Đã chọn 'ĐÓNG': {positions['ĐÓNG']}", title="Thông Tin", type="success")
+    if positions['Đóng']: show_message(f"Đã chọn 'Đóng': {positions['Đóng']}", title="Thông Tin", type="success")
     
     show_message("Đã chọn đủ 3 vị trí. Sẵn sàng!", title="Hoàn Tất Cài Đặt", type="success")
     return True
 
+# MODIFIED pausable_wait function
+def pausable_wait(duration_seconds, countdown_prefix_message=None, countdown_title="Đếm Ngược"):
+    end_time = time.time() + duration_seconds
+    last_displayed_remaining_seconds = -1 
+
+    if countdown_prefix_message:
+        initial_remaining = int(round(duration_seconds))
+        if initial_remaining < 0: initial_remaining = 0
+        show_message(f"{countdown_prefix_message}... còn {initial_remaining} giây", 
+                     title=countdown_title, 
+                     type="info", 
+                     log_to_console=False) # Countdown messages are tooltip-only
+        last_displayed_remaining_seconds = initial_remaining
+
+    while time.time() < end_time:
+        if app_exit_event.is_set():
+            return False
+        if not running:
+            return False
+
+        current_time = time.time()
+        if countdown_prefix_message:
+            remaining_seconds = int(round(end_time - current_time))
+            if remaining_seconds < 0: 
+                remaining_seconds = 0
+
+            if remaining_seconds != last_displayed_remaining_seconds:
+                full_countdown_msg = f"{countdown_prefix_message}... còn {remaining_seconds} giây"
+                show_message(full_countdown_msg, 
+                             title=countdown_title, 
+                             type="info", 
+                             log_to_console=False) # Countdown messages are tooltip-only
+                last_displayed_remaining_seconds = remaining_seconds
+        
+        time.sleep(0.02) 
+
+    if app_exit_event.is_set() or not running:
+        return False
+    
+    if countdown_prefix_message and last_displayed_remaining_seconds != 0:
+         show_message(f"{countdown_prefix_message}... còn 0 giây", 
+                      title=countdown_title, 
+                      type="info", 
+                      log_to_console=False) # Countdown messages are tooltip-only
+         
+    return True
+
 def click_automation_loop():
     global running, app_exit_event, positions
-
-    # Hàm tiện ích để chờ có thể tạm dừng hoặc thoát
-    def pausable_wait(duration_seconds):
-        # 'running' và 'app_exit_event' được truy cập từ scope của click_automation_loop (global)
-        end_time = time.time() + duration_seconds
-        while time.time() < end_time:
-            if app_exit_event.is_set():  # Kiểm tra sự kiện thoát chương trình
-                return False  # Bị ngắt bởi sự kiện thoát
-            if not running:  # Kiểm tra trạng thái chạy/tạm dừng
-                return False  # Bị ngắt bởi lệnh tạm dừng (Page Up)
-            time.sleep(0.02)  # Kiểm tra định kỳ (ví dụ: 50 lần/giây)
-        
-        # Kiểm tra lần cuối sau khi hết thời gian, phòng trường hợp sự kiện xảy ra đúng lúc kết thúc
-        if app_exit_event.is_set() or not running:
-            return False
-        return True  # Hoàn thành thời gian chờ bình thường
-
-    current_action_message = "" # Dùng để ghi log nếu vòng lặp bị ngắt
+    current_action_message = "" 
 
     while not app_exit_event.is_set():
         if running:
-            # Kiểm tra lại tất cả các vị trí trước mỗi chu trình
             if not all(p is not None for p in positions.values()):
                 show_message("Một hoặc nhiều vị trí chưa được thiết lập. Tự động tạm dừng.", title="Lỗi Vị Trí", type="warning")
                 running = False
-                time.sleep(0.02) # Cho phép xử lý ngắn cho các thread/event khác
-                continue # Quay lại đầu vòng lặp while, sẽ vào nhánh 'else' do running = False
+                time.sleep(0.02) 
+                continue 
 
             # 1. Click chuột vào vị trí 'Chanh City'
             current_action_message = "thực hiện click 'Chanh City'"
-            if not running or app_exit_event.is_set(): break # Thoát nếu đang không chạy hoặc có lệnh thoát
+            if not running or app_exit_event.is_set(): break 
             
             point_key = 'Chanh City'
             if positions[point_key] is None:
                 show_message(f"Lỗi: Vị trí '{point_key}' không hợp lệ. Tạm dừng.", title="Lỗi Vị Trí", type="error")
-                running = False; continue # Tạm dừng và kiểm tra lại ở vòng lặp tiếp theo
+                running = False; continue 
             
             x, y = positions[point_key]
             mouse_controller.position = (x, y)
-            if not pausable_wait(0.05): break # Chờ rất ngắn/kiểm tra thoát/tạm dừng trước khi click
+            if not pausable_wait(0.05): break 
             mouse_controller.click(mouse.Button.left, 1)
             print(f"ACTION: Đã click '{point_key}' tại ({x}, {y})")
 
             # -- Chờ 1 giây sau khi click 'Chanh City' --
             current_action_message = "chờ 1 giây sau khi click 'Chanh City'"
             if not running or app_exit_event.is_set(): break
-            print(f"INFO: Đang {current_action_message}...")
-            if not pausable_wait(1.0): break # Nếu pausable_wait trả về False (bị ngắt), thoát vòng lặp
+            wait_msg_1 = f"Đang {current_action_message}..."
+            print(f"INFO: {wait_msg_1}")
+            show_message(wait_msg_1, title="Thông Tin Chu Trình", type="info") # This will log to console by default
+            if not pausable_wait(1.0): break 
 
             # 2. Click chuột vào vị trí 'Vào ngay!'
             current_action_message = "thực hiện click 'Vào ngay!'"
@@ -293,16 +306,18 @@ def click_automation_loop():
             print(f"ACTION: Đã click '{point_key}' tại ({x}, {y})")
 
             # 3. Chờ 10 giây
-            current_action_message = "chờ 10 giây trước khi click 'ĐÓNG'"
+            current_action_message = "chờ 10 giây trước khi click 'Đóng'"
             if not running or app_exit_event.is_set(): break
-            print(f"INFO: Đang {current_action_message}...")
-            if not pausable_wait(10.0): break 
+            print(f"INFO: Đang {current_action_message}...") 
+            if not pausable_wait(10.0, 
+                                 countdown_prefix_message=f"Đang {current_action_message}", 
+                                 countdown_title="Đếm Ngược Chu Trình"): break 
 
-            # 4. Click chuột vào vị trí 'ĐÓNG'
-            current_action_message = "thực hiện click 'ĐÓNG'"
+            # 4. Click chuột vào vị trí 'Đóng'
+            current_action_message = "thực hiện click 'Đóng'"
             if not running or app_exit_event.is_set(): break
 
-            point_key = 'ĐÓNG'
+            point_key = 'Đóng'
             if positions[point_key] is None:
                 show_message(f"Lỗi: Vị trí '{point_key}' không hợp lệ. Tạm dừng.", title="Lỗi Vị Trí", type="error")
                 running = False; continue
@@ -313,23 +328,23 @@ def click_automation_loop():
             mouse_controller.click(mouse.Button.left, 1)
             print(f"ACTION: Đã click '{point_key}' tại ({x}, {y})")
 
-            # 5. Chờ 20 giây trước khi quay trở lại thực hiện bước tiếp theo (lặp lại chu trình)
-            current_action_message = "chờ 20 giây trước khi bắt đầu lại chu trình"
+            # 5. Chờ 40 giây 
+            current_action_message = "chờ 40 giây trước khi bắt đầu lại chu trình"
             if not running or app_exit_event.is_set(): break
             print(f"INFO: Đang {current_action_message}...")
-            if not pausable_wait(20.0): break
+            if not pausable_wait(40.0, 
+                                 countdown_prefix_message=f"Đang {current_action_message}", 
+                                 countdown_title="Đếm Ngược Chu Trình"): break 
             
             print("INFO: Hoàn tất một chu trình, chuẩn bị lặp lại.")
 
-        else: # Nếu running là False (đang tạm dừng)
-            # Trong khi tạm dừng, vẫn kiểm tra thường xuyên sự kiện thoát chương trình
-            if app_exit_event.wait(timeout=0.1): # Chờ với timeout ngắn
-                break # Thoát vòng lặp chính nếu có sự kiện thoát
+        else: 
+            if app_exit_event.wait(timeout=0.1): 
+                break 
     
-    # Các dòng print này sẽ được thực thi khi vòng lặp `while not app_exit_event.is_set():` kết thúc
     if app_exit_event.is_set():
         print(f"INFO: Luồng click đã nhận tín hiệu thoát (có thể trong khi {current_action_message}).")
-    elif not running: # Nếu vòng lặp dừng do 'running' thành False (tạm dừng và sau đó thoát)
+    elif not running: 
         print(f"INFO: Luồng click đã được tạm dừng (có thể trong khi {current_action_message}) và sau đó kết thúc.")
     
     print("INFO: Luồng tự động click đã kết thúc (đã thoát khỏi vòng lặp chính).")
@@ -348,8 +363,8 @@ def on_key_press(key):
         return True
 
     if key == keyboard.Key.page_up:
-        if not all(p is not None for p in positions.values()):
-            show_message("Vui lòng hoàn tất việc chọn vị trí (Chanh City, Vào ngay!, ĐÓNG) trước khi bắt đầu!", title="Lỗi", type="warning")
+        if not all(positions[k] is not None for k in ['Chanh City', 'Vào ngay!', 'Đóng']):
+            show_message("Vui lòng hoàn tất việc chọn vị trí (Chanh City, Vào ngay!, Đóng) trước khi bắt đầu!", title="Lỗi", type="warning")
             return True
         running = not running
         if running:
@@ -358,31 +373,23 @@ def on_key_press(key):
             show_message("TẠM DỪNG chu trình click tự động.\nNhấn PAGE UP để TẠM DỪNG, PAGE DOWN để THOÁT.", title="Trạng Thái", type="info")
     return True
 
-# --- Hàm chính của chương trình ---
 def main():
-    global SETUP_COMPLETE, _tk_root_ref, app_exit_event, positions, current_tooltip_instance # Thêm current_tooltip_instance
+    global SETUP_COMPLETE, _tk_root_ref, app_exit_event, positions, current_tooltip_instance
 
-    # <<< XỬ LÝ DPI SCALING TRÊN WINDOWS >>>
     if platform.system() == "Windows":
         try:
-            # Cố gắng đặt DPI Awareness cho mỗi Monitor V2 (Windows 10 1703+)
-            # Giá trị -4 tương ứng với DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2
             ctypes.windll.shcore.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
             print("INFO: Windows DPI Awareness set to Per Monitor Aware V2.")
-        except (AttributeError, OSError): # AttributeError nếu shcore hoặc hàm không tồn tại, OSError nếu có lỗi gọi
+        except (AttributeError, OSError): 
             try:
-                # Cố gắng đặt DPI Awareness cho mỗi Monitor (Windows 8.1+)
-                # Giá trị 2 tương ứng với PROCESS_PER_MONITOR_DPI_AWARE
                 ctypes.windll.shcore.SetProcessDpiAwareness(2)
                 print("INFO: Windows DPI Awareness set to Per Monitor Aware.")
             except (AttributeError, OSError):
                 try:
-                    # Cố gắng đặt DPI Awareness cho toàn hệ thống (Windows Vista+)
                     ctypes.windll.user32.SetProcessDPIAware()
                     print("INFO: Windows DPI Awareness set to System Aware.")
                 except (AttributeError, OSError):
                     print("WARNING: Could not set DPI awareness. Mouse positions might be incorrect on scaled displays.")
-    # <<< KẾT THÚC XỬ LÝ DPI SCALING TRÊN WINDOWS >>>
     
     keyboard_l = None 
     try:
@@ -400,7 +407,7 @@ def main():
             start_time = time.time()
             while time.time() - start_time < (TOOLTIP_ERROR_DURATION / 1000 + 0.2) and _tk_root_ref.winfo_exists():
                 _tk_root_ref.update(); time.sleep(0.01)
-            _tk_root_ref.destroy()
+            if _tk_root_ref and _tk_root_ref.winfo_exists(): _tk_root_ref.destroy()
         return
 
     root = tk.Tk()
@@ -410,7 +417,7 @@ def main():
     def periodic_queue_check():
         if not app_exit_event.is_set() and _tk_root_ref and _tk_root_ref.winfo_exists():
             _show_all_queued_messages_now()
-            _tk_root_ref.after(200, periodic_queue_check) # Tần suất kiểm tra queue
+            _tk_root_ref.after(200, periodic_queue_check) 
 
     if _tk_root_ref: _tk_root_ref.after(100, periodic_queue_check)
 
@@ -420,7 +427,7 @@ def main():
         current_os = platform.system()
         os_message = f"CHƯƠNG TRÌNH AUTO CLICKER (Hệ điều hành: {current_os})"
         if current_os == "Darwin":
-            os_message = "AUTO CLICKER CHO MACOS\nLƯU Ý: Cần cấp quyền 'Input Monitoring' cho Terminal/App." # Ngắn gọn hơn
+            os_message = "AUTO CLICKER CHO MACOS\nLƯU Ý: Cần cấp quyền 'Input Monitoring' cho Terminal/App." 
         elif current_os == "Windows":
             os_message = "CHƯƠNG TRÌNH AUTO CLICKER CHO WINDOWS"
         print(os_message.replace("\n", "\nINFO: "))
@@ -429,11 +436,12 @@ def main():
 
         if not select_all_positions():
             if not app_exit_event.is_set():
-                show_message("Không thể thiết lập vị trí. Thoát.", title="Lỗi Khởi Tạo", type="error") # Ngắn gọn hơn
+                show_message("Không thể thiết lập vị trí. Thoát.", title="Lỗi Khởi Tạo", type="error") 
             if _tk_root_ref and _tk_root_ref.winfo_exists():
                  start_time = time.time()
                  while time.time() - start_time < (max(TOOLTIP_DEFAULT_DURATION, TOOLTIP_ERROR_DURATION) / 1000 + 0.2) and _tk_root_ref.winfo_exists():
                     _tk_root_ref.update(); time.sleep(0.01)
+                 if _tk_root_ref and _tk_root_ref.winfo_exists(): _tk_root_ref.destroy()
             return
 
         if app_exit_event.is_set():
@@ -472,52 +480,43 @@ def main():
             automation_thread.join(timeout=2.0)
             if automation_thread.is_alive(): print("CẢNH BÁO: Luồng tự động click không kết thúc kịp thời.")
 
-        # Hủy tooltip hiện tại (nếu có) trước khi hiển thị thông báo cuối cùng
         if current_tooltip_instance and current_tooltip_instance.winfo_exists() and \
            _tk_root_ref and _tk_root_ref.winfo_exists() and \
            threading.current_thread() is threading.main_thread():
             current_tooltip_instance.close_tooltip()
             current_tooltip_instance = None
-            if _tk_root_ref.winfo_exists(): # Kiểm tra lại trước khi update
-                _tk_root_ref.update() # Xử lý việc hủy tooltip
+            if _tk_root_ref.winfo_exists(): 
+                _tk_root_ref.update() 
         
-        # Hiển thị thông báo cuối cùng. Nó sẽ là tooltip duy nhất.
         final_message_duration = 1000 
         if _tk_root_ref and _tk_root_ref.winfo_exists():
-            # Đảm bảo show_message và xử lý queue chạy trên luồng chính
             def show_final_message_on_main_thread():
+                # This final message will log to console by default
                 show_message("Chương trình đang thoát. Tạm biệt!", title="Kết Thúc", type="info")
 
             if threading.current_thread() is not threading.main_thread():
-                _tk_root_ref.after(0, show_final_message_on_main_thread)
+                if _tk_root_ref.winfo_exists(): 
+                    _tk_root_ref.after(0, show_final_message_on_main_thread)
             else:
                 show_final_message_on_main_thread()
             
-            # Chờ cho message cuối cùng được xử lý và hiển thị
             start_time = time.time()
-            processed_final_message = False
             
-            # Đảm bảo message cuối được xử lý (nếu chưa)
-            # Cần gọi _show_all_queued_messages_now sau khi show_message được gọi
-            # và trước vòng lặp chờ.
             if threading.current_thread() is threading.main_thread() and _tk_root_ref.winfo_exists():
-                if not message_queue.empty(): # Chỉ gọi nếu có message
-                    _tk_root_ref.after(0, _show_all_queued_messages_now) # Lên lịch xử lý sớm
-                _tk_root_ref.update() # Cho cơ hội xử lý ngay
+                if not message_queue.empty(): 
+                    _tk_root_ref.after(0, _show_all_queued_messages_now) 
+                _tk_root_ref.update() 
 
-            # THAY ĐỔI: Vòng lặp chờ đúng final_message_duration (tính bằng giây)
             while time.time() - start_time < (final_message_duration / 1000.0): 
                 if _tk_root_ref and _tk_root_ref.winfo_exists():
-                    _tk_root_ref.update_idletasks()
-                    _tk_root_ref.update()
-                    # Xử lý message cuối nếu nó chưa được xử lý trong lần update() ngay trên
-                    if not message_queue.empty() and not processed_final_message: 
+                    _tk_root_ref.update_idletasks() 
+                    _tk_root_ref.update() 
+                    if not message_queue.empty() and threading.current_thread() is threading.main_thread():
                         _show_all_queued_messages_now()
-                        processed_final_message = True
-                else: break # Thoát nếu root không còn tồn tại
-                time.sleep(0.01) # sleep để giảm tải CPU
+                else: break 
+                time.sleep(0.01) 
         else:
-             print("INFO: [KẾT THÚC] (info) Chương trình đang thoát. Tạm biệt!")
+             print("INFO: [KẾT THÚC] (info) Chương trình đang thoát. Tạm biệt!") # Fallback console log
 
         if _tk_root_ref and _tk_root_ref.winfo_exists():
             try:
