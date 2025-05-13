@@ -228,31 +228,111 @@ def select_all_positions():
 
 def click_automation_loop():
     global running, app_exit_event, positions
+
+    # Hàm tiện ích để chờ có thể tạm dừng hoặc thoát
+    def pausable_wait(duration_seconds):
+        # 'running' và 'app_exit_event' được truy cập từ scope của click_automation_loop (global)
+        end_time = time.time() + duration_seconds
+        while time.time() < end_time:
+            if app_exit_event.is_set():  # Kiểm tra sự kiện thoát chương trình
+                return False  # Bị ngắt bởi sự kiện thoát
+            if not running:  # Kiểm tra trạng thái chạy/tạm dừng
+                return False  # Bị ngắt bởi lệnh tạm dừng (Page Up)
+            time.sleep(0.02)  # Kiểm tra định kỳ (ví dụ: 50 lần/giây)
+        
+        # Kiểm tra lần cuối sau khi hết thời gian, phòng trường hợp sự kiện xảy ra đúng lúc kết thúc
+        if app_exit_event.is_set() or not running:
+            return False
+        return True  # Hoàn thành thời gian chờ bình thường
+
+    current_action_message = "" # Dùng để ghi log nếu vòng lặp bị ngắt
+
     while not app_exit_event.is_set():
         if running:
+            # Kiểm tra lại tất cả các vị trí trước mỗi chu trình
             if not all(p is not None for p in positions.values()):
                 show_message("Một hoặc nhiều vị trí chưa được thiết lập. Tự động tạm dừng.", title="Lỗi Vị Trí", type="warning")
                 running = False
-                if app_exit_event.wait(0.1): break
-                continue
+                time.sleep(0.02) # Cho phép xử lý ngắn cho các thread/event khác
+                continue # Quay lại đầu vòng lặp while, sẽ vào nhánh 'else' do running = False
 
-            points_to_click = ['Chanh City', 'Vào ngay!', 'ĐÓNG']
-            for point_key in points_to_click:
-                if not running or app_exit_event.is_set(): break
-                if positions[point_key] is None: 
-                    show_message(f"Lỗi: Vị trí '{point_key}' không hợp lệ. Tạm dừng.", title="Lỗi Vị Trí", type="error")
-                    running = False; break
-                x, y = positions[point_key]
-                mouse_controller.position = (x, y)
-                if app_exit_event.wait(timeout=0.05): break
-                mouse_controller.click(mouse.Button.left, 1)
-                if app_exit_event.wait(timeout=1.0): break
+            # 1. Click chuột vào vị trí 'Chanh City'
+            current_action_message = "thực hiện click 'Chanh City'"
+            if not running or app_exit_event.is_set(): break # Thoát nếu đang không chạy hoặc có lệnh thoát
+            
+            point_key = 'Chanh City'
+            if positions[point_key] is None:
+                show_message(f"Lỗi: Vị trí '{point_key}' không hợp lệ. Tạm dừng.", title="Lỗi Vị Trí", type="error")
+                running = False; continue # Tạm dừng và kiểm tra lại ở vòng lặp tiếp theo
+            
+            x, y = positions[point_key]
+            mouse_controller.position = (x, y)
+            if not pausable_wait(0.05): break # Chờ rất ngắn/kiểm tra thoát/tạm dừng trước khi click
+            mouse_controller.click(mouse.Button.left, 1)
+            print(f"ACTION: Đã click '{point_key}' tại ({x}, {y})")
 
-            if not running or app_exit_event.is_set():
-                if app_exit_event.is_set(): print("INFO: Luồng click đã nhận tín hiệu thoát.")
-        else:
-            if app_exit_event.wait(timeout=0.1): break
-    print("INFO: Luồng tự động click đã kết thúc.")
+            # -- Chờ 1 giây sau khi click 'Chanh City' --
+            current_action_message = "chờ 1 giây sau khi click 'Chanh City'"
+            if not running or app_exit_event.is_set(): break
+            print(f"INFO: Đang {current_action_message}...")
+            if not pausable_wait(1.0): break # Nếu pausable_wait trả về False (bị ngắt), thoát vòng lặp
+
+            # 2. Click chuột vào vị trí 'Vào ngay!'
+            current_action_message = "thực hiện click 'Vào ngay!'"
+            if not running or app_exit_event.is_set(): break
+
+            point_key = 'Vào ngay!'
+            if positions[point_key] is None:
+                show_message(f"Lỗi: Vị trí '{point_key}' không hợp lệ. Tạm dừng.", title="Lỗi Vị Trí", type="error")
+                running = False; continue
+            
+            x, y = positions[point_key]
+            mouse_controller.position = (x, y)
+            if not pausable_wait(0.05): break
+            mouse_controller.click(mouse.Button.left, 1)
+            print(f"ACTION: Đã click '{point_key}' tại ({x}, {y})")
+
+            # 3. Chờ 10 giây
+            current_action_message = "chờ 10 giây trước khi click 'ĐÓNG'"
+            if not running or app_exit_event.is_set(): break
+            print(f"INFO: Đang {current_action_message}...")
+            if not pausable_wait(10.0): break 
+
+            # 4. Click chuột vào vị trí 'ĐÓNG'
+            current_action_message = "thực hiện click 'ĐÓNG'"
+            if not running or app_exit_event.is_set(): break
+
+            point_key = 'ĐÓNG'
+            if positions[point_key] is None:
+                show_message(f"Lỗi: Vị trí '{point_key}' không hợp lệ. Tạm dừng.", title="Lỗi Vị Trí", type="error")
+                running = False; continue
+            
+            x, y = positions[point_key]
+            mouse_controller.position = (x, y)
+            if not pausable_wait(0.05): break
+            mouse_controller.click(mouse.Button.left, 1)
+            print(f"ACTION: Đã click '{point_key}' tại ({x}, {y})")
+
+            # 5. Chờ 20 giây trước khi quay trở lại thực hiện bước tiếp theo (lặp lại chu trình)
+            current_action_message = "chờ 20 giây trước khi bắt đầu lại chu trình"
+            if not running or app_exit_event.is_set(): break
+            print(f"INFO: Đang {current_action_message}...")
+            if not pausable_wait(20.0): break
+            
+            print("INFO: Hoàn tất một chu trình, chuẩn bị lặp lại.")
+
+        else: # Nếu running là False (đang tạm dừng)
+            # Trong khi tạm dừng, vẫn kiểm tra thường xuyên sự kiện thoát chương trình
+            if app_exit_event.wait(timeout=0.1): # Chờ với timeout ngắn
+                break # Thoát vòng lặp chính nếu có sự kiện thoát
+    
+    # Các dòng print này sẽ được thực thi khi vòng lặp `while not app_exit_event.is_set():` kết thúc
+    if app_exit_event.is_set():
+        print(f"INFO: Luồng click đã nhận tín hiệu thoát (có thể trong khi {current_action_message}).")
+    elif not running: # Nếu vòng lặp dừng do 'running' thành False (tạm dừng và sau đó thoát)
+        print(f"INFO: Luồng click đã được tạm dừng (có thể trong khi {current_action_message}) và sau đó kết thúc.")
+    
+    print("INFO: Luồng tự động click đã kết thúc (đã thoát khỏi vòng lặp chính).")
 
 def on_key_press(key):
     global running, SETUP_COMPLETE, app_exit_event
