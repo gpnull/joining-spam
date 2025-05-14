@@ -11,7 +11,7 @@ import queue
 positions = {
     'Chanh City': (150, 550),
     'Vào ngay!': (150, 460),
-    'Ok': (520, 690), # <<< BỔ SUNG VỊ TRÍ MỚI
+    'Ok': (520, 700), # <<< BỔ SUNG VỊ TRÍ MỚI
     'Đóng': (520, 800)
 }
 running = False
